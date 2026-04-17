@@ -1,29 +1,35 @@
-// TODO (Team 3): Replace this placeholder with the full Traffic Simulation game implementation.
-// See README.md in this folder for the spec, expected files, and API contract.
+
+import { useState } from 'react';
+
+
+import PlayerNameInput from './PlayerNameInput';
+
 
 const ACCENT = '#38bdf8';
 
 export default function TrafficSimPage() {
+  const [playerName, setPlayerName] = useState('');
+  const [selected, setSelected] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+ 
+
+  if (!playerName) return <PlayerNameInput onConfirm={setPlayerName} />;
+
   return (
-    <div style={{ maxWidth: 640, margin: '60px auto', textAlign: 'center' }}>
-      <div style={{ fontSize: 48, marginBottom: 16, color: ACCENT }}>⬟</div>
-      <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--heading)', marginBottom: 8 }}>
-        Traffic Simulation
-      </h1>
-      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: ACCENT, textTransform: 'uppercase', marginBottom: 24 }}>
-        Maximum Flow Problem — Team 3
-      </p>
-      <div style={{ background: 'var(--surface)', border: `1px solid ${ACCENT}30`, borderRadius: 12, padding: '32px 28px', color: 'var(--muted)', fontSize: 14, lineHeight: 1.7 }}>
-        <p style={{ marginBottom: 16 }}>
-          This game is under development by <strong style={{ color: 'var(--text)' }}>Team 3</strong>.
-        </p>
-        <p style={{ marginBottom: 16 }}>
-          Algorithms to implement: <span style={{ color: ACCENT }}>Edmonds-Karp</span> &amp; <span style={{ color: ACCENT }}>Dinic's</span>
-        </p>
-        <p style={{ fontSize: 12 }}>
-          See <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4 }}>client/src/games/traffic/README.md</code> to get started.
-        </p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <div className="font-mono-game" style={{ fontSize: '10px', letterSpacing: '0.3em', color: ACCENT, marginBottom: '6px', textTransform: 'uppercase' }}>Game 03</div>
+          <h1 className="font-display" style={{ fontSize: '28px', fontWeight: 900, color: '#eef2ff', letterSpacing: '-0.01em' }}>Traffic Simulation</h1>
+          <p style={{ fontSize: '13px', color: '#5a6480', marginTop: '4px' }}>Maximum Flow Problem — Edmonds-Karp vs Dinic's</p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <span style={{ fontSize: '12px', color: '#5a6480', fontFamily: 'var(--font-mono)' }}>Playing as: <span style={{ color: ACCENT }}>{playerName}</span></span>
+          <button onClick={() => {}} disabled={loading} style={{ background: ACCENT, color: '#000', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: 700, fontSize: '12px', cursor: loading ? 'wait' : 'pointer', fontFamily: 'var(--font-display)', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: loading ? 0.7 : 1 }}>
+            {loading ? 'Computing...' : selected !== null ? 'New Round' : 'Start Game'}
+          </button>
+        </div>
       </div>
-    </div>
   );
 }
