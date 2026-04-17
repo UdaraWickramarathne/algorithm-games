@@ -36,9 +36,29 @@ export function edmondsKarp(
       }
     }
 
+    if (parent[sinkIdx] === -1) break;
 
+    // Find bottleneck
+    let pathFlow = Infinity;
+    let v = sinkIdx;
+    while (v !== sourceIdx) {
+      const u = parent[v];
+      pathFlow = Math.min(pathFlow, residual[u][v]);
+      v = u;
+    }
 
+    // Update residual capacities and flow
+    v = sinkIdx;
+    while (v !== sourceIdx) {
+      const u = parent[v];
+      residual[u][v] -= pathFlow;
+      residual[v][u] += pathFlow;
+      flow[u][v] += pathFlow;
+      flow[v][u] -= pathFlow;
+      v = u;
+    }
 
+    maxFlow += pathFlow;
   }
 
   return { maxFlow, flowMatrix: flow };
