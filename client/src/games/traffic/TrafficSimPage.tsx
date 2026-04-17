@@ -1,6 +1,3 @@
-// TODO (Team 3): Replace this placeholder with the full Traffic Simulation game implementation.
-// See README.md in this folder for the spec, expected files, and API contract.
-
 const ACCENT = '#38bdf9';
 
 export default function TrafficSimPage() {
