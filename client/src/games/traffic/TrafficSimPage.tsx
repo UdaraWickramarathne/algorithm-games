@@ -1,4 +1,4 @@
-const ACCENT = '#38bdf9';
+const ACCENT = '#38bdf8';
 
 export default function TrafficSimPage() {
   return (
