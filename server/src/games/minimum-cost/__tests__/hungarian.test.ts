@@ -60,4 +60,33 @@ describe('Hungarian Algorithm', () => {
     );
     expect(result.totalCost).toBe(manual);
   });
+  it('handles a 1x1 matrix', () => {
+    const cost = [[42]];
+    const result = hungarian(cost);
+    expect(result.assignment).toEqual([0]);
+    expect(result.totalCost).toBe(42);
+  });
+
+  it('handles matrices with identical costs', () => {
+    const cost = [
+      [5, 5, 5],
+      [5, 5, 5],
+      [5, 5, 5],
+    ];
+    const result = hungarian(cost);
+    expect(result.totalCost).toBe(15);
+    const usedTasks = new Set(result.assignment);
+    expect(usedTasks.size).toBe(3);
+  });
+
+  it('handles matrices with large costs', () => {
+    const cost = [
+      [1000, 2000],
+      [3000, 4000],
+    ];
+    const result = hungarian(cost);
+    // Optimal is w0->t1 (2000) + w1->t0 (3000) = 5000
+    // Wait, w0->t0 (1000) + w1->t1 (4000) = 5000. It's the same!
+    expect(result.totalCost).toBe(5000);
+  });
 });
