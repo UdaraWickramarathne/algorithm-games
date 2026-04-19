@@ -29,10 +29,9 @@ function solveQueensSequentialInWorker(
   maxTimeMs: number = MAX_TIME_MS,
 ): Promise<{ count: number; sampleSolutions: number[][] }> {
   return new Promise((resolve, reject) => {
-    const workerPath = join(__dirname, 'workers/queensSolverWorker.ts');
+    const workerPath = join(__dirname, 'workers/queensSolverWorker.bootstrap.mjs');
     const allColumns = Array.from({ length: n }, (_, i) => i);
     const worker = new Worker(workerPath, {
-      execArgv: ['--import', 'tsx'],
       workerData: { n, firstRowCols: allColumns, maxSamples, maxTimeMs },
     });
     worker.on('message', (msg: { count: number; sampleSolutions: number[][] }) => resolve(msg));

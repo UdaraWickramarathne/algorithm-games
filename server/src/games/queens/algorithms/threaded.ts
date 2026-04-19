@@ -25,7 +25,7 @@ export function solveQueensThreaded(
 ): Promise<ThreadedSolveResult> {
   return new Promise((resolve, reject) => {
     const workerCount = Math.min(n, cpus().length);
-    const workerPath = join(__dirname, '../workers/queensSolverWorker.ts');
+    const workerPath = join(__dirname, '../workers/queensSolverWorker.bootstrap.mjs');
 
     const columns = Array.from({ length: n }, (_, i) => i);
     const chunks: number[][] = Array.from({ length: workerCount }, () => []);
@@ -37,7 +37,6 @@ export function solveQueensThreaded(
 
     for (let w = 0; w < workerCount; w++) {
       const worker = new Worker(workerPath, {
-        execArgv: ['--import', 'tsx'],
         workerData: {
           n,
           firstRowCols: chunks[w],
