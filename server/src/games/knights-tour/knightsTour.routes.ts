@@ -1,11 +1,10 @@
 import { Router } from 'express';
+import { handleNewRound, handleSubmitAnswer, handleGetSolution } from './knightsTour.controller.js';
 
 const router = Router();
 
-// TODO (Team 4): Implement Knight's Tour game routes.
-// See README.md in this folder for the full spec and API contract.
-router.all('*', (_req, res) => {
-  res.status(501).json({ error: "Not implemented yet — assigned to Team 4 (Knight's Tour)" });
-});
+router.post('/rounds', handleNewRound);
+router.get('/rounds/:id/solution', handleGetSolution);
+router.post('/rounds/:id/answer', handleSubmitAnswer);
 
 export default router;
