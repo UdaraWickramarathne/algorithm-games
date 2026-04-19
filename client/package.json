@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "test": "vitest run --passWithNoTests"
+    "preview": "vite preview"
   },
   "dependencies": {
     "axios": "^1.15.0",
