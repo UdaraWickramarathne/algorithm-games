@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import type { NewRoundResponse, SubmitAnswerResponse } from './minimumCost.types.ts';
+import type { NewRoundResponse, SubmitAnswerResponse, AlgoTiming } from './minimumCost.types.ts';
 import { fetchNewRound, submitAnswer } from './minimumCost.api.ts';
 import PlayerNameInput from './PlayerNameInput.tsx';
 import CostMatrix from './CostMatrix.tsx';
 import AnswerChoices from './AnswerChoices.tsx';
 import AlgorithmTimingPanel from './AlgorithmTimingPanel.tsx';
 import GameResult from './GameResult.tsx';
+import RoundTimingChart from '../../components/RoundTimingChart.tsx';
 
 const ACCENT = '#eab308';
 
@@ -16,6 +17,7 @@ export default function MinimumCostPage() {
   const [result, setResult] = useState<SubmitAnswerResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [history, setHistory] = useState<AlgoTiming[][]>([]);
 
   const startRound = async () => {
     setLoading(true);
@@ -25,6 +27,7 @@ export default function MinimumCostPage() {
     try {
       const data = await fetchNewRound();
       setRound(data);
+      setHistory(h => [...h, data.timings]);
     } catch {
       setError('Server error. Is the backend running?');
     } finally {
@@ -142,6 +145,18 @@ export default function MinimumCostPage() {
           </div>
         </div>
       )}
+
+      <div style={{ marginTop: '20px' }}>
+        <RoundTimingChart
+          title="Algorithm Timing per Round (ms)"
+          rounds={history.map((timings, i) => ({
+            label: `R${i + 1}`,
+            bars: timings.map(t => ({ name: t.algorithmName, value: t.executionTimeMs })),
+          }))}
+          colors={['#eab308', '#f97316']}
+          accent={ACCENT}
+        />
+      </div>
 
       {result && (
         <GameResult

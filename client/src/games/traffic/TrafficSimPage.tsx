@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import type { NewRoundResponse, SubmitAnswerResponse } from './traffic.types';
+import type { NewRoundResponse, SubmitAnswerResponse, AlgoTiming } from './traffic.types';
 import { fetchNewRound, submitAnswer } from './traffic.api';
 import PlayerNameInput from './PlayerNameInput';
 import TrafficGraph from './TrafficGraph';
 import AnswerChoices from './AnswerChoices';
 import AlgorithmTimingPanel from './AlgorithmTimingPanel';
 import GameResult from './GameResult';
+import RoundTimingChart from '../../components/RoundTimingChart';
 
 const ACCENT = '#38bdf8';
 
@@ -16,10 +17,15 @@ export default function TrafficSimPage() {
   const [result, setResult] = useState<SubmitAnswerResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [history, setHistory] = useState<AlgoTiming[][]>([]);
 
   const startRound = async () => {
     setLoading(true); setError(''); setSelected(null); setResult(null);
-    try { const data = await fetchNewRound(); setRound(data); }
+    try {
+      const data = await fetchNewRound();
+      setRound(data);
+      setHistory(h => [...h, data.timings]);
+    }
     catch { setError('Server error. Is the backend running?'); }
     finally { setLoading(false); }
   };
@@ -96,6 +102,18 @@ export default function TrafficSimPage() {
           </div>
         </div>
       )}
+
+      <div style={{ marginTop: '20px' }}>
+        <RoundTimingChart
+          title="Algorithm Timing per Round (ms)"
+          rounds={history.map((timings, i) => ({
+            label: `R${i + 1}`,
+            bars: timings.map(t => ({ name: t.algorithmName, value: t.executionTimeMs })),
+          }))}
+          colors={['#38bdf8', '#818cf8']}
+          accent={ACCENT}
+        />
+      </div>
 
       {result && <GameResult outcome={result.outcome} correctAnswer={result.correctAnswer} isCorrect={result.isCorrect} timings={result.timings} onNext={() => { setResult(null); setSelected(null); startRound(); }} />}
     </div>

@@ -62,6 +62,7 @@ export default function ChessBoard({ n, startRow, startCol, moves, solution, onC
             return (
               <div
                 key={key}
+                data-cell={`${r}-${c}`}
                 onClick={() => interactive && onCellClick?.(r, c)}
                 style={{
                   width: cellSize, height: cellSize,

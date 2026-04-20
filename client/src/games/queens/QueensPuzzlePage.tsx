@@ -6,6 +6,7 @@ import QueensBoard from './QueensBoard';
 import SolverStatus from './SolverStatus';
 import AlgorithmTimingPanel from './AlgorithmTimingPanel';
 import GameResult from './GameResult';
+import RoundTimingChart from '../../components/RoundTimingChart';
 
 const ACCENT = '#fb7185';
 const N = 16;
@@ -18,6 +19,7 @@ export default function QueensPuzzlePage() {
   const [result, setResult] = useState<SubmitResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [solverHistory, setSolverHistory] = useState<{ seq: number; thr: number }[]>([]);
 
   const loadStats = useCallback(async () => {
     try { const s = await getStats(); setStats(s); setSolveStatus({ status: s.status as any ?? 'done', ...s }); }
@@ -32,7 +34,13 @@ export default function QueensPuzzlePage() {
     const id = setInterval(async () => {
       const s = await getSolvingStatus();
       setSolveStatus(s);
-      if (s.status === 'done') { clearInterval(id); loadStats(); }
+      if (s.status === 'done') {
+        clearInterval(id);
+        loadStats();
+        if (s.sequentialTimeMs != null && s.threadedTimeMs != null) {
+          setSolverHistory(h => [...h, { seq: s.sequentialTimeMs!, thr: s.threadedTimeMs! }]);
+        }
+      }
     }, 2000);
     return () => clearInterval(id);
   }, [solveStatus.status, loadStats]);
@@ -108,6 +116,18 @@ export default function QueensPuzzlePage() {
           </div>
 
           {stats && stats.status === 'done' && <AlgorithmTimingPanel stats={stats} />}
+          <RoundTimingChart
+            title="Solver Timing per Run (ms)"
+            rounds={solverHistory.map((h, i) => ({
+              label: `Run ${i + 1}`,
+              bars: [
+                { name: 'Sequential', value: h.seq },
+                { name: 'Threaded',   value: h.thr },
+              ],
+            }))}
+            colors={['#fb7185', '#f97316']}
+            accent={ACCENT}
+          />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

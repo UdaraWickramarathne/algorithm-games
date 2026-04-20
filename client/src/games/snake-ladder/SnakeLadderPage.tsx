@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { NewRoundResponse, SubmitAnswerResponse } from './snakeLadder.types';
+import type { NewRoundResponse, SubmitAnswerResponse, AlgoTiming } from './snakeLadder.types';
 import { fetchNewRound, submitAnswer } from './snakeLadder.api';
 import PlayerNameInput from './PlayerNameInput';
 import SnakeLadderBoard from './SnakeLadderBoard';
@@ -7,6 +7,7 @@ import BoardSizeInput from './BoardSizeInput';
 import AnswerChoices from './AnswerChoices';
 import AlgorithmTimingPanel from './AlgorithmTimingPanel';
 import GameResult from './GameResult';
+import RoundTimingChart from '../../components/RoundTimingChart';
 
 const ACCENT = '#10b981';
 
@@ -18,10 +19,15 @@ export default function SnakeLadderPage() {
   const [result, setResult] = useState<SubmitAnswerResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [history, setHistory] = useState<AlgoTiming[][]>([]);
 
   const startRound = async (size: number = boardSize) => {
     setLoading(true); setError(''); setSelected(null); setResult(null);
-    try { const data = await fetchNewRound(size); setRound(data); }
+    try {
+      const data = await fetchNewRound(size);
+      setRound(data);
+      setHistory(h => [...h, data.timings]);
+    }
     catch { setError('Server error. Is the backend running?'); }
     finally { setLoading(false); }
   };
@@ -107,6 +113,18 @@ export default function SnakeLadderPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div style={{ marginTop: '20px' }}>
+        <RoundTimingChart
+          title="Algorithm Timing per Round (ms)"
+          rounds={history.map((timings, i) => ({
+            label: `R${i + 1}`,
+            bars: timings.map(t => ({ name: t.algorithmName, value: t.executionTimeMs })),
+          }))}
+          colors={['#10b981', '#06b6d4']}
+          accent={ACCENT}
+        />
       </div>
 
       {result && <GameResult outcome={result.outcome} correctAnswer={result.correctAnswer} isCorrect={result.isCorrect} timings={result.timings} onNext={() => { setResult(null); setSelected(null); startRound(boardSize); }} />}

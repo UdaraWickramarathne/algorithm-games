@@ -33,6 +33,7 @@ export default function QueensBoard({ queens, onToggle, disabled }: Props) {
             return (
               <div
                 key={`${r}-${c}`}
+                data-cell={`${r}-${c}`}
                 onClick={() => !disabled && onToggle(r, c)}
                 style={{ width: cellSize, height: cellSize, background: bg, border: `0.5px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: disabled ? 'default' : 'pointer', transition: 'background 0.1s', fontSize: cellSize > 20 ? 14 : 10 }}
                 title={hasQueen ? (conflict ? 'Conflict!' : 'Queen') : `Place queen at row ${r + 1}, col ${c + 1}`}

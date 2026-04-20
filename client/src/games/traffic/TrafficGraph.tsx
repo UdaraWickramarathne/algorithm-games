@@ -15,11 +15,6 @@ const NODE_POS: Record<string, [number, number]> = {
   T: [0.95, 0.42],
 };
 
-const NODE_COLORS: Record<string, string> = {
-  A: '#10b981',
-  T: '#fb7185',
-};
-
 interface Props { edges: TrafficEdge[]; }
 
 export default function TrafficGraph({ edges }: Props) {

@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import type { NewRoundResponse, SubmitAnswerResponse } from './knightsTour.types';
+import type { NewRoundResponse, SubmitAnswerResponse, AlgoTiming } from './knightsTour.types';
 import { fetchNewRound, submitAnswer } from './knightsTour.api';
 import PlayerNameInput from './PlayerNameInput';
 import ChessBoard from './ChessBoard';
 import BoardSizeSelector from './BoardSizeSelector';
-import MoveControls from './MoveControls';   
+import MoveControls from './MoveControls';
 import AlgorithmTimingPanel from './AlgorithmTimingPanel';
 import GameResult from './GameResult';
+import RoundTimingChart from '../../components/RoundTimingChart';
 
 const ACCENT = '#a855f7';                                                      
 const KNIGHT_MOVES = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
@@ -20,10 +21,16 @@ export default function KnightsTourPage() {
   const [showSolution, setShowSolution] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [history, setHistory] = useState<(AlgoTiming & { boardSize: number })[][]>([]);
 
   const startRound = async (size: 8 | 16 = boardSize) => {
     setLoading(true); setError(''); setMoves([]); setResult(null); setShowSolution(false);
-    try { const data = await fetchNewRound(size); setRound(data); setMoves([[data.startRow, data.startCol]]); }
+    try {
+      const data = await fetchNewRound(size);
+      setRound(data);
+      setMoves([[data.startRow, data.startCol]]);
+      setHistory(h => [...h, data.timings.map(t => ({ ...t, boardSize: size }))]);
+    }
     catch { setError('Server error. Is the backend running?'); }
     finally { setLoading(false); }
   };
@@ -127,6 +134,18 @@ export default function KnightsTourPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div style={{ marginTop: '20px' }}>
+        <RoundTimingChart
+          title="Algorithm Timing per Round (ms)"
+          rounds={history.map((timings, i) => ({
+            label: `R${i + 1} (${timings[0]?.boardSize ?? boardSize}²)`,
+            bars: timings.map(t => ({ name: t.algorithmName, value: t.executionTimeMs })),
+          }))}
+          colors={['#a855f7', '#ec4899']}
+          accent={ACCENT}
+        />
       </div>
 
       {result && !showSolution && (

@@ -1,5 +1,3 @@
-const ACCENT = '#10b981';
-
 interface Props {
   boardSize: number;
   snakes: Record<string, number>;
