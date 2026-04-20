@@ -19,3 +19,12 @@ export async function getStats(): Promise<StatsResponse> {
   if (!res.ok) throw new Error('Failed to get stats');
   return res.json();
 }
+
+export async function getSampleSolution(excludeHash?: string): Promise<{ solution: number[]; hash: string }> {
+  const url = excludeHash
+    ? `/api/games/queens/sample-solution?exclude=${encodeURIComponent(excludeHash)}`
+    : '/api/games/queens/sample-solution';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('No solution available. Run solvers first.');
+  return res.json();
+}

@@ -56,3 +56,14 @@ export function countTotal(): number {
     .get() as { cnt: number };
   return row.cnt;
 }
+
+export function getRandomSolution(excludeHash?: string): QueensSolution | undefined {
+  if (excludeHash) {
+    return getDb()
+      .prepare('SELECT * FROM queens_solutions WHERE solution_hash != ? ORDER BY RANDOM() LIMIT 1')
+      .get(excludeHash) as QueensSolution | undefined;
+  }
+  return getDb()
+    .prepare('SELECT * FROM queens_solutions ORDER BY RANDOM() LIMIT 1')
+    .get() as QueensSolution | undefined;
+}

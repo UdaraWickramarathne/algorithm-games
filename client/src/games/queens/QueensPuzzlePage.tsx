@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { SolvingStatus, SubmitResponse, StatsResponse } from './queens.types';
-import { startSolving, getSolvingStatus, submitSolution, getStats } from './queens.api';
+import { startSolving, getSolvingStatus, submitSolution, getStats, getSampleSolution } from './queens.api';
 import PlayerNameInput from './PlayerNameInput';
 import QueensBoard from './QueensBoard';
 import SolverStatus from './SolverStatus';
@@ -20,6 +20,7 @@ export default function QueensPuzzlePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [solverHistory, setSolverHistory] = useState<{ seq: number; thr: number }[]>([]);
+  const [lastRevealedHash, setLastRevealedHash] = useState<string | null>(null);
 
   const loadStats = useCallback(async () => {
     try { const s = await getStats(); setStats(s); setSolveStatus({ status: s.status as any ?? 'done', ...s }); }
@@ -60,6 +61,26 @@ export default function QueensPuzzlePage() {
     });
   };
 
+  const handleRevealAnswer = async () => {
+    setLoading(true); setError('');
+    try {
+      const data = await getSampleSolution(lastRevealedHash ?? undefined);
+      setQueens(data.solution);
+      setLastRevealedHash(data.hash);
+    } catch {
+      setError('No solutions stored yet. Run solvers first to see a solution.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNewRound = () => {
+    setQueens(Array(N).fill(-1));
+    setResult(null);
+    setError('');
+    setLastRevealedHash(null);
+  };
+
   const handleSubmit = async () => {
     const placed = queens.filter((c) => c >= 0).length;
     if (placed !== N) { setError(`Place exactly ${N} queens (one per row). Currently ${placed} placed.`); return; }
@@ -84,7 +105,10 @@ export default function QueensPuzzlePage() {
           <h1 className="font-display" style={{ fontSize: '28px', fontWeight: 900, color: '#eef2ff', letterSpacing: '-0.01em' }}>Sixteen Queens</h1>
           <p style={{ fontSize: '13px', color: '#5a6480', marginTop: '4px' }}>N-Queens Puzzle — Sequential vs Threaded</p>
         </div>
-        <span style={{ fontSize: '12px', color: '#5a6480', fontFamily: 'var(--font-mono)' }}>Playing as: <span style={{ color: ACCENT }}>{playerName}</span></span>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <span style={{ fontSize: '12px', color: '#5a6480', fontFamily: 'var(--font-mono)' }}>Playing as: <span style={{ color: ACCENT }}>{playerName}</span></span>
+          <button onClick={handleNewRound} disabled={loading} style={{ background: ACCENT, color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: 700, fontSize: '12px', cursor: loading ? 'wait' : 'pointer', fontFamily: 'var(--font-display)', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: loading ? 0.7 : 1 }}>New Round</button>
+        </div>
       </div>
 
       {error && <div style={{ background: '#f8717115', border: '1px solid #f8717140', borderRadius: '8px', padding: '12px 16px', color: '#f87171', fontSize: '13px', marginBottom: '20px' }}>{error}</div>}
@@ -107,9 +131,10 @@ export default function QueensPuzzlePage() {
 
             <QueensBoard queens={queens} onToggle={handleToggle} disabled={loading} />
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
               <button onClick={() => setQueens(Array(N).fill(-1))} style={{ flex: 1, padding: '10px', background: '#141720', border: '1px solid #1e2236', borderRadius: '8px', color: '#f87171', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>✕ Clear Board</button>
-              <button onClick={handleSubmit} disabled={placedCount !== N || loading} style={{ flex: 2, padding: '12px', background: placedCount === N && !loading ? ACCENT : '#1e2236', color: placedCount === N && !loading ? '#fff' : '#3a4060', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: placedCount === N && !loading ? 'pointer' : 'default', fontFamily: 'var(--font-display)', letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.2s' }}>
+              <button onClick={handleRevealAnswer} disabled={loading} style={{ flex: 1, padding: '10px', background: '#141720', border: '1px solid #f8717130', borderRadius: '8px', color: !loading ? '#f87171' : '#3a4060', fontSize: '12px', cursor: !loading ? 'pointer' : 'default', fontFamily: 'var(--font-mono)' }}>⚠ Reveal Answer</button>
+              <button onClick={handleSubmit} disabled={placedCount !== N || loading} style={{ flex: 2, minWidth: '160px', padding: '12px', background: placedCount === N && !loading ? ACCENT : '#1e2236', color: placedCount === N && !loading ? '#fff' : '#3a4060', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: placedCount === N && !loading ? 'pointer' : 'default', fontFamily: 'var(--font-display)', letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.2s' }}>
                 {loading ? 'Submitting...' : `Submit Solution (${placedCount}/${N})`}
               </button>
             </div>
@@ -152,7 +177,7 @@ export default function QueensPuzzlePage() {
         </div>
       </div>
 
-      {result && <GameResult result={result} onClose={() => { setResult(null); if (result.isRecognized) setQueens(Array(N).fill(-1)); }} />}
+      {result && <GameResult result={result} onClose={handleNewRound} />}
     </div>
   );
 }

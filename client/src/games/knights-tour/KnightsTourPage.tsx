@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { NewRoundResponse, SubmitAnswerResponse, AlgoTiming } from './knightsTour.types';
-import { fetchNewRound, submitAnswer } from './knightsTour.api';
+import { fetchNewRound, submitAnswer, fetchSolution } from './knightsTour.api';
 import PlayerNameInput from './PlayerNameInput';
 import ChessBoard from './ChessBoard';
 import BoardSizeSelector from './BoardSizeSelector';
@@ -19,12 +19,13 @@ export default function KnightsTourPage() {
   const [moves, setMoves] = useState<[number, number][]>([]);
   const [result, setResult] = useState<SubmitAnswerResponse | null>(null);
   const [showSolution, setShowSolution] = useState(false);
+  const [revealedSolution, setRevealedSolution] = useState<number[][] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [history, setHistory] = useState<(AlgoTiming & { boardSize: number })[][]>([]);
 
   const startRound = async (size: 8 | 16 = boardSize) => {
-    setLoading(true); setError(''); setMoves([]); setResult(null); setShowSolution(false);
+    setLoading(true); setError(''); setMoves([]); setResult(null); setShowSolution(false); setRevealedSolution(null);
     try {
       const data = await fetchNewRound(size);
       setRound(data);
@@ -48,6 +49,19 @@ export default function KnightsTourPage() {
     setLoading(true);
     try { const data = await submitAnswer(round.roundId, playerName, moves); setResult(data); }
     catch { setError('Failed to submit'); }
+    finally { setLoading(false); }
+  };
+
+  const handleRevealAnswer = async () => {
+    if (!round) return;
+    setLoading(true); setError('');
+    try {
+      const data = await fetchSolution(round.roundId);
+      setRevealedSolution(data.solution);
+      setMoves([[round.startRow, round.startCol]]);
+      setShowSolution(true);
+    }
+    catch { setError('Failed to fetch solution'); }
     finally { setLoading(false); }
   };
 
@@ -98,7 +112,7 @@ export default function KnightsTourPage() {
                   startRow={round.startRow}
                   startCol={round.startCol}
                   moves={showSolution ? [] : moves}
-                  solution={showSolution && result ? result.solution : undefined}
+                  solution={showSolution ? (result?.solution ?? revealedSolution ?? undefined) : undefined}
                   onCellClick={handleCellClick}
                   interactive={!showSolution && !result}
                 />
@@ -121,7 +135,8 @@ export default function KnightsTourPage() {
               onUndo={() => { if (moves.length > 1) setMoves((p) => p.slice(0, -1)); }}
               onClear={() => setMoves([[round.startRow, round.startCol]])}
               onSubmit={handleSubmit}
-              disabled={loading || !!result}
+              onReveal={handleRevealAnswer}
+              disabled={loading || !!result || showSolution}
             />
           )}
           <div style={{ background: '#0e1018', border: '1px solid #1e2236', borderRadius: '12px', padding: '20px' }}>

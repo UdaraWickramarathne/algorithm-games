@@ -4,7 +4,6 @@ import { dirname, join } from 'path';
 import { performance } from 'perf_hooks';
 import { hashSolution, isValidQueenPlacement } from './algorithms/sequential.js';
 import { solveQueensThreaded } from './algorithms/threaded.js';
-import { getDb } from '../../db/database.js';
 import {
   findSolutionByHash,
   insertSolution,
@@ -12,29 +11,27 @@ import {
   resetAllRecognized,
   countRecognized,
   countTotal,
+  getRandomSolution,
 } from './queens.model.js';
 import { findOrCreatePlayer } from '../../shared/models/player.model.js';
-import { createError } from '../../shared/middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const N = 16;
-const MAX_SAMPLES = 5000; // Store up to 5000 sample solutions for player recognition
 const MAX_TIME_MS = 0;   // 0 = unlimited (find all solutions)
 
 function solveQueensSequentialInWorker(
   n: number,
-  maxSamples: number,
   maxTimeMs: number = MAX_TIME_MS,
-): Promise<{ count: number; sampleSolutions: number[][] }> {
+): Promise<{ count: number }> {
   return new Promise((resolve, reject) => {
     const workerPath = join(__dirname, 'workers/queensSolverWorker.bootstrap.mjs');
     const allColumns = Array.from({ length: n }, (_, i) => i);
     const worker = new Worker(workerPath, {
-      workerData: { n, firstRowCols: allColumns, maxSamples, maxTimeMs },
+      workerData: { n, firstRowCols: allColumns, maxSamples: 0, maxTimeMs },
     });
-    worker.on('message', (msg: { count: number; sampleSolutions: number[][] }) => resolve(msg));
+    worker.on('message', (msg: { count: number }) => resolve(msg));
     worker.on('error', reject);
   });
 }
@@ -45,7 +42,6 @@ interface SolveSession {
   threadedCount?: number;
   sequentialTimeMs?: number;
   threadedTimeMs?: number;
-  sampleSolutions?: number[][];
   workerCount?: number;
 }
 
@@ -69,22 +65,9 @@ export async function startSolving(): Promise<{ sessionId: string; status: strin
       // Run sequential (1 worker, all columns) and threaded (N workers) in parallel
       const [{ result: seqResult, executionTimeMs: seqTime }, { result: thrResult, executionTimeMs: thrTime }] =
         await Promise.all([
-          timed(() => solveQueensSequentialInWorker(N, MAX_SAMPLES, MAX_TIME_MS)),
-          timed(() => solveQueensThreaded(N, MAX_SAMPLES, MAX_TIME_MS)),
+          timed(() => solveQueensSequentialInWorker(N, MAX_TIME_MS)),
+          timed(() => solveQueensThreaded(N, 0, MAX_TIME_MS)),
         ]);
-
-      // Store sample solutions in DB
-      const db = getDb();
-      const insertStmt = db.prepare(
-        'INSERT OR IGNORE INTO queens_solutions (solution_hash, solution_json, is_recognized) VALUES (?, ?, 0)'
-      );
-      const insertMany = db.transaction((solutions: number[][]) => {
-        for (const sol of solutions) {
-          const hash = hashSolution(sol);
-          insertStmt.run(hash, JSON.stringify(sol));
-        }
-      });
-      insertMany(seqResult.sampleSolutions);
 
       currentSession = {
         status: 'done',
@@ -92,7 +75,6 @@ export async function startSolving(): Promise<{ sessionId: string; status: strin
         threadedCount: thrResult.count,
         sequentialTimeMs: seqTime,
         threadedTimeMs: thrTime,
-        sampleSolutions: seqResult.sampleSolutions,
         workerCount: thrResult.workerCount,
       };
     } catch (err) {
@@ -159,6 +141,12 @@ export function submitSolution(playerName: string, queenPositions: number[]) {
     isRecognized: false,
     message: `Correct! New solution recorded for player ${playerName}.`,
   };
+}
+
+export function getSampleSolution(excludeHash?: string): { solution: number[]; hash: string } | null {
+  const sol = getRandomSolution(excludeHash);
+  if (!sol) return null;
+  return { solution: JSON.parse(sol.solution_json) as number[], hash: sol.solution_hash };
 }
 
 export function getStats() {

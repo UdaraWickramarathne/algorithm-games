@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { startSolving, getSolvingStatus, submitSolution, getStats } from './queens.service.js';
+import { startSolving, getSolvingStatus, submitSolution, getStats, getSampleSolution } from './queens.service.js';
 import { createError } from '../../shared/middleware/errorHandler.js';
 
 export async function handleStartSolving(_req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -38,6 +38,20 @@ export function handleSubmitSolution(req: Request, res: Response, next: NextFunc
 export function handleGetStats(_req: Request, res: Response, next: NextFunction): void {
   try {
     res.json(getStats());
+  } catch (err) {
+    next(err);
+  }
+}
+
+export function handleGetSampleSolution(req: Request, res: Response, next: NextFunction): void {
+  try {
+    const excludeHash = req.query.exclude as string | undefined;
+    const result = getSampleSolution(excludeHash);
+    if (!result) {
+      res.status(404).json({ error: 'No solutions stored. Run solvers first.' });
+      return;
+    }
+    res.json(result);
   } catch (err) {
     next(err);
   }
