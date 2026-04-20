@@ -1,10 +1,11 @@
 /**
- * Autoplay: Sixteen Queens — solver + 20 solution submissions
+ * Autoplay: Sixteen Queens — 20 solution rounds
  *
  * 1. Opens the Queens page in a real browser.
- * 2. Clicks "Run Solvers" if the solver hasn't finished yet, then waits.
- * 3. Generates 25 distinct valid 16-queens solutions locally (instant).
- * 4. For each of 20 rounds: clears the board, places a solution, submits.
+ * 2. Enters player name and starts.
+ * 3. Runs the solver once for timing data.
+ * 4. For each of 20 rounds: clears the board, places a valid solution,
+ *    submits, then clicks "Continue" / "Try Another" to close the popup.
  *
  * Prerequisites:
  *   - Backend running on http://localhost:3001
@@ -12,21 +13,14 @@
  *
  * Run:
  *   node scripts/autoplay-queens.js
- *
- * Note on timing chart:
- *   Solver timing (Sequential vs Threaded) is recorded once per "Run Solvers"
- *   click. Re-run this script (or click "Run Solvers" again) to add more
- *   timing rows to algorithm_timings. Each of the 20 submissions is visible
- *   in the queens_solutions and game_results tables.
  */
 
 const { chromium } = require('playwright');
 
-const FRONTEND   = 'http://localhost:5173';
-const API        = 'http://localhost:3001';
-const PLAYER     = 'AutoBot-Q';
-const SUBMIT_N   = 20;   // number of solution submissions
-const SOLVER_RUNS = 3;   // how many times to run the solver for timing data
+const FRONTEND = 'http://localhost:5173';
+const API      = 'http://localhost:3001';
+const PLAYER   = 'AutoBot-Q';
+const SUBMIT_N = 20;
 
 // ── Generate valid 16-queens solutions locally ─────────────────────────────
 function generateSolutions(limit = 25) {
@@ -93,22 +87,15 @@ async function run() {
   await page.click('button:has-text("Start Playing")');
   await page.waitForTimeout(500);
 
-  // ── Run the solver SOLVER_RUNS times for timing data ─────────────────────
-  for (let run = 1; run <= SOLVER_RUNS; run++) {
-    console.log(`\n── Solver run ${run}/${SOLVER_RUNS} ─────────────────────────`);
+  // ── Run the solver once for timing data ──────────────────────────────────
+  console.log('\n── Running solver ───────────────────────────────────────────');
+  await page.click('button:has-text("Run Solvers"), button:has-text("Run Again")');
+  await page.waitForTimeout(1000);
+  await waitForSolver(page);
+  console.log();
+  await page.waitForTimeout(1500);
 
-    // Click "Run Solvers" button
-    await page.click('button:has-text("Run Solvers"), button:has-text("Run Again")');
-    await page.waitForTimeout(1000);
-
-    await waitForSolver(page);
-    console.log();
-
-    // Wait briefly for the UI to refresh
-    await page.waitForTimeout(1500);
-  }
-
-  // ── Submit 20 solutions ───────────────────────────────────────────────────
+  // ── Play 20 rounds ────────────────────────────────────────────────────────
   let submitted = 0;
   let solutionIdx = 0;
 
@@ -116,7 +103,7 @@ async function run() {
     const sol = solutions[solutionIdx++];
     console.log(`\nRound ${submitted + 1}/${SUBMIT_N} — placing queens: [${sol.join(',')}]`);
 
-    // Clear the board first
+    // Clear the board
     await page.click('button:has-text("Clear Board"), button:has-text("✕ Clear Board")');
     await page.waitForTimeout(200);
 
@@ -127,7 +114,7 @@ async function run() {
       await page.waitForTimeout(40);
     }
 
-    // Submit — intercept the response in the same Promise.all
+    // Submit and intercept response
     const [submitResp] = await Promise.all([
       page.waitForResponse(
         (r) => r.url().includes('/submit-solution') && r.request().method() === 'POST',
@@ -136,27 +123,32 @@ async function run() {
       page.click('button:has-text("Submit Solution")'),
     ]);
 
+    let isValid = true;
     if (submitResp) {
       const data = await submitResp.json().catch(() => ({}));
+      isValid = data.isValid ?? true;
       console.log(`  isValid=${data.isValid}  isNew=${data.isNew}  isRecognized=${data.isRecognized}`);
       console.log(`  ${data.message}`);
-
-      if (!data.isValid) {
-        // Should not happen with generated solutions; skip and try next
-        console.warn('  ! Invalid solution — skipping');
-        continue;
-      }
     }
 
-    // Close any result overlay
-    const closeBtn = page.locator('button:has-text("Close"), button:has-text("✕"), button:has-text("OK")');
-    if (await closeBtn.count() > 0) {
-      await closeBtn.first().click().catch(() => {});
-      await page.waitForTimeout(300);
+    // Close the result popup — button is "Continue" or "Try Another"
+    await page.waitForTimeout(400);
+    const popupBtn = page.locator('button:has-text("Continue"), button:has-text("Try Another")');
+    try {
+      await popupBtn.first().waitFor({ state: 'visible', timeout: 5000 });
+      await popupBtn.first().click();
+      await page.waitForTimeout(400);
+    } catch {
+      // No popup appeared (shouldn't happen, but continue anyway)
+    }
+
+    if (!isValid) {
+      console.warn('  ! Invalid solution — skipping');
+      continue;
     }
 
     submitted++;
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(300);
   }
 
   console.log(`\n✓ Submitted ${submitted} solutions. Check the database for results.`);

@@ -115,7 +115,18 @@ async function run() {
       console.log(`  Correct: ${submitData.isCorrect}`);
     }
 
-    await page.waitForTimeout(600);
+    // Close the result popup by clicking "New Round →"
+    await page.waitForTimeout(300);
+    const popupNewRound = page.locator('button:has-text("New Round →")');
+    try {
+      await popupNewRound.waitFor({ state: 'visible', timeout: 5000 });
+      await popupNewRound.click();
+      await page.waitForTimeout(500);
+    } catch {
+      // No popup or already dismissed
+    }
+
+    await page.waitForTimeout(300);
   }
 
   console.log('\n✓ All 20 rounds complete. Check the database for timing data.');
