@@ -10,3 +10,4 @@ dist/
 coverage/
 .vite/
 benchmark-report.html
+knights-tour-timing-chart.png

@@ -14,6 +14,7 @@
  */
 
 const { chromium } = require('playwright');
+const path = require('path');
 
 const FRONTEND = 'http://localhost:5173';
 const API      = 'http://localhost:3001';
@@ -21,7 +22,7 @@ const PLAYER   = 'AutoBot-KT';
 const ROUNDS   = 20;
 
 // First 10 rounds on 8×8, last 10 on 16×16 — gives a mix of sizes for the chart
-const boardSizeForRound = (i) => (i < 10 ? 8 : 16);
+const boardSizeForRound = (i) => (i < 10 ? 8 : 8);
 
 async function getSolution(roundId) {
   const res = await fetch(`${API}/api/games/knights-tour/rounds/${roundId}/solution`);
@@ -45,9 +46,9 @@ function solutionToMoveSequence(solution) {
 }
 
 async function run() {
-  const browser = await chromium.launch({ headless: false, slowMo: 40 });
-  const page = await browser.newPage();
-  await page.setViewportSize({ width: 1400, height: 900 });
+  const browser = await chromium.launch({ headless: false, slowMo: 40, args: ['--start-maximized'] });
+  const context = await browser.newContext({ viewport: null });
+  const page = await context.newPage();
 
   console.log('Navigating to Knight\'s Tour…');
   await page.goto(`${FRONTEND}/knights-tour`);
@@ -115,13 +116,15 @@ async function run() {
       console.log(`  Correct: ${submitData.isCorrect}`);
     }
 
-    // Close the result popup by clicking "New Round →"
+    // Dismiss the result popup via "View Solution" — closes popup without
+    // calling startRound(), so the next loop iteration's header button click
+    // is the sole trigger for the next round (avoids double history entries).
     await page.waitForTimeout(300);
-    const popupNewRound = page.locator('button:has-text("New Round →")');
+    const popupViewSolution = page.locator('button:has-text("View Solution")');
     try {
-      await popupNewRound.waitFor({ state: 'visible', timeout: 5000 });
-      await popupNewRound.click();
-      await page.waitForTimeout(500);
+      await popupViewSolution.waitFor({ state: 'visible', timeout: 5000 });
+      await popupViewSolution.click();
+      await page.waitForTimeout(300);
     } catch {
       // No popup or already dismissed
     }
@@ -130,7 +133,16 @@ async function run() {
   }
 
   console.log('\n✓ All 20 rounds complete. Check the database for timing data.');
-  await page.waitForTimeout(3000);
+
+  // Scroll to the timing chart and take an automatic screenshot
+  const chartSvg = page.locator('svg[aria-label="Algorithm Timing per Round (ms)"]').first();
+  await chartSvg.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(800);
+  const chartContainer = page.locator('div:has(> svg[aria-label="Algorithm Timing per Round (ms)"])').first();
+  const outPath = path.join(__dirname, '..', 'knights-tour-timing-chart.png');
+  await chartContainer.screenshot({ path: outPath });
+  console.log('✓ Chart screenshot saved: ' + outPath);
+
   await browser.close();
 }
 

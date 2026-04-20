@@ -62,6 +62,7 @@ export default function RoundTimingChart({ title, rounds, colors, accent }: Prop
   const n       = rounds.length;
   const nAlgos  = rounds[0].bars.length;
   const slotW   = PW / n;
+  const labelStep = Math.max(1, Math.ceil(n / 10));
   const barW    = Math.min(22, Math.max(3, (slotW - 8) / nAlgos - 2));
   const groupW  = nAlgos * barW + (nAlgos - 1) * 3;
 
@@ -141,16 +142,18 @@ export default function RoundTimingChart({ title, rounds, colors, accent }: Prop
                 </rect>
               );
             })}
-            <text
-              x={ML + ri * slotW + slotW / 2}
-              y={MT + PH + 14}
-              textAnchor="middle"
-              fontSize="9"
-              fill="#4a5070"
-              fontFamily="monospace"
-            >
-              {round.label}
-            </text>
+            {ri % labelStep === 0 && (
+              <text
+                x={ML + ri * slotW + slotW / 2}
+                y={MT + PH + 14}
+                textAnchor="middle"
+                fontSize="9"
+                fill="#4a5070"
+                fontFamily="monospace"
+              >
+                {round.label}
+              </text>
+            )}
           </g>
         ))}
 
