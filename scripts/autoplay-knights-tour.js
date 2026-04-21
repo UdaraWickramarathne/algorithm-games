@@ -18,7 +18,7 @@ const path = require('path');
 
 const FRONTEND = 'http://localhost:5173';
 const API      = 'http://localhost:3001';
-const PLAYER   = 'udara';
+const PLAYER   = 'AutoBotKT';
 const ROUNDS   = 20;
 
 // First 10 rounds on 8×8, last 10 on 16×16 — gives a mix of sizes for the chart
