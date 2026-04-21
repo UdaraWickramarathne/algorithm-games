@@ -20,11 +20,11 @@ export async function getStats(): Promise<StatsResponse> {
   return res.json();
 }
 
-export async function getSampleSolution(excludeHash?: string): Promise<{ solution: number[]; hash: string }> {
+export async function revealSolution(excludeHash?: string): Promise<{ solution: number[]; hash: string }> {
   const url = excludeHash
-    ? `/api/games/queens/sample-solution?exclude=${encodeURIComponent(excludeHash)}`
-    : '/api/games/queens/sample-solution';
+    ? `/api/games/queens/reveal-solution?exclude=${encodeURIComponent(excludeHash)}`
+    : '/api/games/queens/reveal-solution';
   const res = await fetch(url);
-  if (!res.ok) throw new Error('No solution available. Run solvers first.');
+  if (!res.ok) throw new Error('Failed to reveal solution.');
   return res.json();
 }

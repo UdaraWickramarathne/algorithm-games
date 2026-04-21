@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { SolvingStatus, SubmitResponse, StatsResponse } from './queens.types';
-import { startSolving, getSolvingStatus, submitSolution, getStats, getSampleSolution } from './queens.api';
+import { startSolving, getSolvingStatus, submitSolution, getStats, revealSolution } from './queens.api';
 import PlayerNameInput from './PlayerNameInput';
 import QueensBoard from './QueensBoard';
 import SolverStatus from './SolverStatus';
@@ -64,11 +64,11 @@ export default function QueensPuzzlePage() {
   const handleRevealAnswer = async () => {
     setLoading(true); setError('');
     try {
-      const data = await getSampleSolution(lastRevealedHash ?? undefined);
+      const data = await revealSolution(lastRevealedHash ?? undefined);
       setQueens(data.solution);
       setLastRevealedHash(data.hash);
     } catch {
-      setError('No solutions stored yet. Run solvers first to see a solution.');
+      setError('Failed to reveal solution.');
     } finally {
       setLoading(false);
     }

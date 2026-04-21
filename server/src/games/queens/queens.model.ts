@@ -21,11 +21,9 @@ export function insertSolution(
   playerId: number | null
 ): QueensSolution {
   const db = getDb();
-  const result = db
-    .prepare(
-      'INSERT OR IGNORE INTO queens_solutions (solution_hash, solution_json, found_by_player_id, is_recognized) VALUES (?, ?, ?, 1)'
-    )
-    .run(hash, solutionJson, playerId);
+  db.prepare(
+    'INSERT OR IGNORE INTO queens_solutions (solution_hash, solution_json, found_by_player_id, is_recognized) VALUES (?, ?, ?, 1)'
+  ).run(hash, solutionJson, playerId);
   return db
     .prepare('SELECT * FROM queens_solutions WHERE solution_hash = ?')
     .get(hash) as QueensSolution;

@@ -17,6 +17,7 @@ export default function KnightsTourPage() {
   const [boardSize, setBoardSize] = useState<8 | 16>(8);
   const [round, setRound] = useState<NewRoundResponse | null>(null);
   const [moves, setMoves] = useState<[number, number][]>([]);
+  const [savedMoves, setSavedMoves] = useState<[number, number][]>([]);
   const [result, setResult] = useState<SubmitAnswerResponse | null>(null);
   const [showSolution, setShowSolution] = useState(false);
   const [revealedSolution, setRevealedSolution] = useState<number[][] | null>(null);
@@ -25,7 +26,7 @@ export default function KnightsTourPage() {
   const [history, setHistory] = useState<(AlgoTiming & { boardSize: number })[][]>([]);
 
   const startRound = async (size: 8 | 16 = boardSize) => {
-    setLoading(true); setError(''); setMoves([]); setResult(null); setShowSolution(false); setRevealedSolution(null);
+    setLoading(true); setError(''); setMoves([]); setSavedMoves([]); setResult(null); setShowSolution(false); setRevealedSolution(null);
     try {
       const data = await fetchNewRound(size);
       setRound(data);
@@ -54,11 +55,23 @@ export default function KnightsTourPage() {
 
   const handleRevealAnswer = async () => {
     if (!round) return;
+    if (showSolution) {
+      setMoves(savedMoves);
+      setShowSolution(false);
+      return;
+    }
     setLoading(true); setError('');
     try {
-      const data = await fetchSolution(round.roundId);
-      setRevealedSolution(data.solution);
-      setMoves([[round.startRow, round.startCol]]);
+      let solution = revealedSolution;
+      if (!solution) {
+        const data = await fetchSolution(round.roundId);
+        solution = data.solution;
+        setRevealedSolution(solution);
+      }
+      setSavedMoves(moves);
+      const ordered: [number, number][] = [];
+      solution.forEach((row, r) => row.forEach((moveNum, c) => { if (moveNum > 0) ordered[moveNum - 1] = [r, c]; }));
+      setMoves(ordered);
       setShowSolution(true);
     }
     catch { setError('Failed to fetch solution'); }
@@ -136,7 +149,8 @@ export default function KnightsTourPage() {
               onClear={() => setMoves([[round.startRow, round.startCol]])}
               onSubmit={handleSubmit}
               onReveal={handleRevealAnswer}
-              disabled={loading || !!result || showSolution}
+              showSolution={showSolution}
+              disabled={loading || !!result}
             />
           )}
           <div style={{ background: '#0e1018', border: '1px solid #1e2236', borderRadius: '12px', padding: '20px' }}>

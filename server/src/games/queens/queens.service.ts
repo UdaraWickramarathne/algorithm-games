@@ -11,7 +11,6 @@ import {
   resetAllRecognized,
   countRecognized,
   countTotal,
-  getRandomSolution,
 } from './queens.model.js';
 import { findOrCreatePlayer } from '../../shared/models/player.model.js';
 
@@ -143,10 +142,14 @@ export function submitSolution(playerName: string, queenPositions: number[]) {
   };
 }
 
-export function getSampleSolution(excludeHash?: string): { solution: number[]; hash: string } | null {
-  const sol = getRandomSolution(excludeHash);
-  if (!sol) return null;
-  return { solution: JSON.parse(sol.solution_json) as number[], hash: sol.solution_hash };
+export async function revealSolution(excludeHash?: string): Promise<{ solution: number[]; hash: string }> {
+  const { sampleSolutions } = await solveQueensThreaded(N, 20, 300);
+  const candidates = excludeHash
+    ? sampleSolutions.filter(s => hashSolution(s) !== excludeHash)
+    : sampleSolutions;
+  const pool = candidates.length > 0 ? candidates : sampleSolutions;
+  const solution = pool[Math.floor(Math.random() * pool.length)];
+  return { solution, hash: hashSolution(solution) };
 }
 
 export function getStats() {
