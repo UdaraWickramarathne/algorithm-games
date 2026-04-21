@@ -19,6 +19,7 @@ export default function KnightsTourPage() {
   const [moves, setMoves] = useState<[number, number][]>([]);
   const [savedMoves, setSavedMoves] = useState<[number, number][]>([]);
   const [result, setResult] = useState<SubmitAnswerResponse | null>(null);
+  const [playerSolution, setPlayerSolution] = useState<number[][] | null>(null);
   const [showSolution, setShowSolution] = useState(false);
   const [revealedSolution, setRevealedSolution] = useState<number[][] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ export default function KnightsTourPage() {
   const [history, setHistory] = useState<(AlgoTiming & { boardSize: number })[][]>([]);
 
   const startRound = async (size: 8 | 16 = boardSize) => {
-    setLoading(true); setError(''); setMoves([]); setSavedMoves([]); setResult(null); setShowSolution(false); setRevealedSolution(null);
+    setLoading(true); setError(''); setMoves([]); setSavedMoves([]); setResult(null); setPlayerSolution(null); setShowSolution(false); setRevealedSolution(null);
     try {
       const data = await fetchNewRound(size);
       setRound(data);
@@ -48,7 +49,18 @@ export default function KnightsTourPage() {
   const handleSubmit = async () => {
     if (!round) return;
     setLoading(true);
-    try { const data = await submitAnswer(round.roundId, playerName, moves); setResult(data); }
+    const submitMoves = showSolution ? savedMoves : moves;
+    setShowSolution(false);
+    try {
+      const data = await submitAnswer(round.roundId, playerName, submitMoves);
+      setResult(data);
+      if (data.isCorrect) {
+        const n = round.boardSize;
+        const grid: number[][] = Array.from({ length: n }, () => Array(n).fill(0));
+        submitMoves.forEach(([r, c], i) => { grid[r][c] = i + 1; });
+        setPlayerSolution(grid);
+      }
+    }
     catch { setError('Failed to submit'); }
     finally { setLoading(false); }
   };
@@ -118,14 +130,15 @@ export default function KnightsTourPage() {
                   ))}
                 </div>
                 <div style={{ fontSize: '11px', color: '#5a6480', marginBottom: '12px', fontFamily: 'var(--font-mono)' }}>
-                  {showSolution ? '✦ ALGORITHM SOLUTION' : '● Click green dots to move the knight'}
+                  {showSolution ? (result?.isCorrect ? '✦ YOUR SOLUTION' : '✦ ALGORITHM SOLUTION') : '● Click green dots to move the knight'}
                 </div>
                 <ChessBoard
                   n={round.boardSize}
                   startRow={round.startRow}
                   startCol={round.startCol}
                   moves={showSolution ? [] : moves}
-                  solution={showSolution ? (result?.solution ?? revealedSolution ?? undefined) : undefined}
+                  solution={showSolution ? (result?.isCorrect ? (playerSolution ?? result.solution) : (result?.solution ?? revealedSolution ?? undefined)) : undefined}
+                  solutionLabel={showSolution && result?.isCorrect ? 'your solution' : 'algorithm solution'}
                   onCellClick={handleCellClick}
                   interactive={!showSolution && !result}
                 />

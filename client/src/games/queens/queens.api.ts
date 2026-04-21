@@ -1,4 +1,4 @@
-import type { SolvingStatus, SubmitResponse, StatsResponse } from './queens.types';
+import type { SolvingStatus, SubmitResponse, StatsResponse, SolverTimingRun } from './queens.types';
 export async function startSolving(): Promise<{ sessionId: string; status: string }> {
   const res = await fetch('/api/games/queens/solve', { method: 'POST' });
   if (!res.ok) throw new Error('Failed to start solving');
@@ -17,6 +17,12 @@ export async function submitSolution(playerName: string, queenPositions: number[
 export async function getStats(): Promise<StatsResponse> {
   const res = await fetch('/api/games/queens/stats');
   if (!res.ok) throw new Error('Failed to get stats');
+  return res.json();
+}
+
+export async function getAlgorithmTimings(): Promise<SolverTimingRun[]> {
+  const res = await fetch('/api/games/queens/timings');
+  if (!res.ok) throw new Error('Failed to get timings');
   return res.json();
 }
 

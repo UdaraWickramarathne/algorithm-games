@@ -6,13 +6,14 @@ interface Props {
   startCol: number;
   moves: [number, number][];
   solution?: number[][];
+  solutionLabel?: string;
   onCellClick?: (r: number, c: number) => void;
   interactive?: boolean;
 }
 
 const KNIGHT_MOVES = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
 
-export default function ChessBoard({ n, startRow, startCol, moves, solution, onCellClick, interactive }: Props) {
+export default function ChessBoard({ n, startRow, startCol, moves, solution, solutionLabel, onCellClick, interactive }: Props) {
   const cellSize = Math.min(560 / n, n <= 8 ? 60 : 32);
   const boardSize = n * cellSize;
 
@@ -91,7 +92,7 @@ export default function ChessBoard({ n, startRow, startCol, moves, solution, onC
       </div>
       <div style={{ display: 'flex', gap: '16px', marginTop: '10px', flexWrap: 'wrap' }}>
         <div style={{ fontSize: '11px', color: '#5a6480', fontFamily: 'var(--font-mono)' }}>
-          ♞ = {solution ? 'algorithm solution' : `current (move ${moves.length})`}
+          ♞ = {solution ? (solutionLabel ?? 'algorithm solution') : `current (move ${moves.length})`}
         </div>
         {interactive && !solution && <div style={{ fontSize: '11px', color: '#10b981', fontFamily: 'var(--font-mono)' }}>● = valid next moves</div>}
         {solution && <div style={{ fontSize: '11px', color: ACCENT, fontFamily: 'var(--font-mono)' }}>Numbers = move sequence</div>}

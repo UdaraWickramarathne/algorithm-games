@@ -13,6 +13,8 @@ import {
   countTotal,
 } from './queens.model.js';
 import { findOrCreatePlayer } from '../../shared/models/player.model.js';
+import { createGameRound } from '../../shared/models/gameRound.model.js';
+import { saveAlgorithmTiming, getTimingsByGameType } from '../../shared/models/algorithmTiming.model.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -76,6 +78,10 @@ export async function startSolving(): Promise<{ sessionId: string; status: strin
         threadedTimeMs: thrTime,
         workerCount: thrResult.workerCount,
       };
+
+      const round = createGameRound('queens', { n: N }, String(seqResult.count));
+      saveAlgorithmTiming(round.id, 'Sequential', seqTime, String(seqResult.count), 'queens');
+      saveAlgorithmTiming(round.id, `Threaded (${thrResult.workerCount} workers)`, thrTime, String(thrResult.count), 'queens');
     } catch (err) {
       console.error('[Queens] Solve error:', err);
       currentSession = { status: 'error' };
@@ -161,4 +167,21 @@ export function getStats() {
     totalStored: total,
     allRecognized: total > 0 && recognized >= total,
   };
+}
+
+export function getTimingHistory() {
+  const rows = getTimingsByGameType('queens', 100);
+  // Group pairs by game_round_id (Sequential + Threaded per round)
+  const byRound = new Map<number, { seq?: number; thr?: number; createdAt: string }>();
+  for (const row of rows) {
+    if (!byRound.has(row.game_round_id)) {
+      byRound.set(row.game_round_id, { createdAt: row.created_at });
+    }
+    const entry = byRound.get(row.game_round_id)!;
+    if (row.algorithm_name === 'Sequential') entry.seq = row.execution_time_ms;
+    else entry.thr = row.execution_time_ms;
+  }
+  return Array.from(byRound.entries())
+    .map(([runId, v]) => ({ runId, seq: v.seq ?? 0, thr: v.thr ?? 0, createdAt: v.createdAt }))
+    .reverse();
 }

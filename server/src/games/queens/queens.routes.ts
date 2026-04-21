@@ -5,6 +5,7 @@ import {
   handleSubmitSolution,
   handleGetStats,
   handleRevealSolution,
+  handleGetTimingHistory,
 } from './queens.controller.js';
 
 const router = Router();
@@ -13,6 +14,7 @@ router.post('/solve', handleStartSolving);
 router.get('/solve/status', handleGetStatus);
 router.post('/submit-solution', handleSubmitSolution);
 router.get('/stats', handleGetStats);
+router.get('/timings', handleGetTimingHistory);
 router.get('/reveal-solution', handleRevealSolution);
 
 export default router;

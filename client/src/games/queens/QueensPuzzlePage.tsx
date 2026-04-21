@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { SolvingStatus, SubmitResponse, StatsResponse } from './queens.types';
-import { startSolving, getSolvingStatus, submitSolution, getStats, revealSolution } from './queens.api';
+import { startSolving, getSolvingStatus, submitSolution, getStats, revealSolution, getAlgorithmTimings } from './queens.api';
 import PlayerNameInput from './PlayerNameInput';
 import QueensBoard from './QueensBoard';
 import SolverStatus from './SolverStatus';
@@ -22,12 +22,26 @@ export default function QueensPuzzlePage() {
   const [solverHistory, setSolverHistory] = useState<{ seq: number; thr: number }[]>([]);
   const [lastRevealedHash, setLastRevealedHash] = useState<string | null>(null);
 
+  const loadTimingHistory = useCallback(async () => {
+    try {
+      const runs = await getAlgorithmTimings();
+      setSolverHistory(runs.map(r => ({ seq: r.seq, thr: r.thr })));
+    } catch { /* ignore */ }
+  }, []);
+
   const loadStats = useCallback(async () => {
-    try { const s = await getStats(); setStats(s); setSolveStatus({ status: s.status as any ?? 'done', ...s }); }
+    try {
+      const s = await getStats();
+      setStats(s);
+      setSolveStatus(prev => {
+        if (prev.status === 'running' && s.status === 'done') return prev;
+        return { status: s.status as any ?? 'done', ...s };
+      });
+    }
     catch { /* ignore */ }
   }, []);
 
-  useEffect(() => { loadStats(); }, [loadStats]);
+  useEffect(() => { loadStats(); loadTimingHistory(); }, [loadStats, loadTimingHistory]);
 
   // Poll while running
   useEffect(() => {
@@ -38,13 +52,11 @@ export default function QueensPuzzlePage() {
       if (s.status === 'done') {
         clearInterval(id);
         loadStats();
-        if (s.sequentialTimeMs != null && s.threadedTimeMs != null) {
-          setSolverHistory(h => [...h, { seq: s.sequentialTimeMs!, thr: s.threadedTimeMs! }]);
-        }
+        loadTimingHistory();
       }
     }, 2000);
     return () => clearInterval(id);
-  }, [solveStatus.status, loadStats]);
+  }, [solveStatus.status, loadStats, loadTimingHistory]);
 
   const handleStartSolving = async () => {
     setLoading(true);

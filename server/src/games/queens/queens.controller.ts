@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { startSolving, getSolvingStatus, submitSolution, getStats, revealSolution } from './queens.service.js';
+import { startSolving, getSolvingStatus, submitSolution, getStats, revealSolution, getTimingHistory } from './queens.service.js';
 import { createError } from '../../shared/middleware/errorHandler.js';
 
 export async function handleStartSolving(_req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -38,6 +38,14 @@ export function handleSubmitSolution(req: Request, res: Response, next: NextFunc
 export function handleGetStats(_req: Request, res: Response, next: NextFunction): void {
   try {
     res.json(getStats());
+  } catch (err) {
+    next(err);
+  }
+}
+
+export function handleGetTimingHistory(_req: Request, res: Response, next: NextFunction): void {
+  try {
+    res.json(getTimingHistory());
   } catch (err) {
     next(err);
   }

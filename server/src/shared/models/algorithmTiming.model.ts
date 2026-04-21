@@ -36,3 +36,9 @@ export function getTimingsByRoundId(roundId: number): AlgorithmTiming[] {
     .prepare('SELECT * FROM algorithm_timings WHERE game_round_id = ?')
     .all(roundId) as AlgorithmTiming[];
 }
+
+export function getTimingsByGameType(gameType: GameType, limit = 50): AlgorithmTiming[] {
+  return getDb()
+    .prepare('SELECT * FROM algorithm_timings WHERE game_type = ? ORDER BY id DESC LIMIT ?')
+    .all(gameType, limit) as AlgorithmTiming[];
+}
