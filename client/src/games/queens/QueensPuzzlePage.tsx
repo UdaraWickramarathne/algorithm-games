@@ -20,7 +20,7 @@ export default function QueensPuzzlePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [solverHistory, setSolverHistory] = useState<{ seq: number; thr: number }[]>([]);
-  const [lastRevealedHash, setLastRevealedHash] = useState<string | null>(null);
+  const [revealedHashes, setRevealedHashes] = useState<string[]>([]);
 
   const loadTimingHistory = useCallback(async () => {
     try {
@@ -76,11 +76,11 @@ export default function QueensPuzzlePage() {
   const handleRevealAnswer = async () => {
     setLoading(true); setError('');
     try {
-      const data = await revealSolution(lastRevealedHash ?? undefined);
+      const data = await revealSolution(revealedHashes);
       setQueens(data.solution);
-      setLastRevealedHash(data.hash);
-    } catch {
-      setError('Failed to reveal solution.');
+      setRevealedHashes((prev) => (prev.includes(data.hash) ? prev : [...prev, data.hash]));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reveal solution.');
     } finally {
       setLoading(false);
     }
@@ -90,7 +90,7 @@ export default function QueensPuzzlePage() {
     setQueens(Array(N).fill(-1));
     setResult(null);
     setError('');
-    setLastRevealedHash(null);
+    setRevealedHashes([]);
   };
 
   const handleSubmit = async () => {

@@ -26,11 +26,29 @@ export async function getAlgorithmTimings(): Promise<SolverTimingRun[]> {
   return res.json();
 }
 
-export async function revealSolution(excludeHash?: string): Promise<{ solution: number[]; hash: string }> {
-  const url = excludeHash
-    ? `/api/games/queens/reveal-solution?exclude=${encodeURIComponent(excludeHash)}`
-    : '/api/games/queens/reveal-solution';
+export async function revealSolution(excludeHashes: string[] = []): Promise<{ solution: number[]; hash: string }> {
+  const url = (() => {
+    if (excludeHashes.length === 0) {
+      return '/api/games/queens/reveal-solution';
+    }
+    const params = new URLSearchParams();
+    for (const hash of excludeHashes) {
+      params.append('exclude', hash);
+    }
+    return `/api/games/queens/reveal-solution?${params.toString()}`;
+  })();
   const res = await fetch(url);
-  if (!res.ok) throw new Error('Failed to reveal solution.');
+  if (!res.ok) {
+    let message = 'Failed to reveal solution.';
+    try {
+      const payload = await res.json() as { message?: string };
+      if (payload.message) {
+        message = payload.message;
+      }
+    } catch {
+      // Ignore parse errors and keep the default message.
+    }
+    throw new Error(message);
+  }
   return res.json();
 }

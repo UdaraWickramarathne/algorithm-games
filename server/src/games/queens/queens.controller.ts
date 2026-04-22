@@ -53,8 +53,18 @@ export function handleGetTimingHistory(_req: Request, res: Response, next: NextF
 
 export async function handleRevealSolution(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const excludeHash = req.query.exclude as string | undefined;
-    res.json(await revealSolution(excludeHash));
+    const rawExclude = req.query.exclude;
+    const excludeHashes = Array.isArray(rawExclude)
+      ? rawExclude.map(value => String(value))
+      : typeof rawExclude === 'string'
+        ? [rawExclude]
+        : [];
+
+    const normalizedExcludes = excludeHashes
+      .map(value => value.trim())
+      .filter(Boolean);
+
+    res.json(await revealSolution(normalizedExcludes));
   } catch (err) {
     next(err);
   }

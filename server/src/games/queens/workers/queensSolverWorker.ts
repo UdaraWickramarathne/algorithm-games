@@ -5,9 +5,10 @@ interface WorkerInput {
   firstRowCols: number[];
   maxSamples: number;
   maxTimeMs: number; // Stop after this many milliseconds (0 = unlimited)
+  randomizeSearch?: boolean;
 }
 
-const { n, firstRowCols, maxSamples, maxTimeMs = 0 } = workerData as WorkerInput;
+const { n, firstRowCols, maxSamples, maxTimeMs = 0, randomizeSearch = false } = workerData as WorkerInput;
 // maxTimeMs = 0 means run until all solutions found
 
 let count = 0;
@@ -17,6 +18,35 @@ const full = (1 << n) - 1;
 
 const startTime = Date.now();
 let stopped = false;
+
+function shuffleInPlace<T>(items: T[]): void {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+}
+
+function pickRandomSetBit(mask: number): number {
+  let totalBits = 0;
+  let bits = mask;
+  while (bits !== 0) {
+    bits &= bits - 1;
+    totalBits++;
+  }
+
+  let target = Math.floor(Math.random() * totalBits);
+  bits = mask;
+  while (bits !== 0) {
+    const bit = bits & -bits;
+    bits ^= bit;
+    if (target === 0) {
+      return bit;
+    }
+    target--;
+  }
+
+  return mask & -mask;
+}
 
 /**
  * Bitmask-based N-Queens backtracking — 100x faster than Set-based.
@@ -37,7 +67,7 @@ function backtrack(row: number, cols: number, diag1: number, diag2: number): voi
   }
   let available = full & ~(cols | diag1 | diag2);
   while (available !== 0 && !stopped) {
-    const bit = available & -available;
+    const bit = randomizeSearch ? pickRandomSetBit(available) : (available & -available);
     available ^= bit;
     const col = Math.log2(bit) | 0;
     queens[row] = col;
@@ -46,7 +76,12 @@ function backtrack(row: number, cols: number, diag1: number, diag2: number): voi
 }
 
 // Solve for each assigned first-row column
-for (const col of firstRowCols) {
+const columnsToTry = [...firstRowCols];
+if (randomizeSearch) {
+  shuffleInPlace(columnsToTry);
+}
+
+for (const col of columnsToTry) {
   if (stopped) break;
   const bit = 1 << col;
   queens[0] = col;

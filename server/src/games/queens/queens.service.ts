@@ -21,6 +21,9 @@ const __dirname = dirname(__filename);
 
 const N = 16;
 const MAX_TIME_MS = 0;   // 0 = unlimited (find all solutions)
+const REVEAL_SAMPLE_SIZE = 300;
+const REVEAL_MAX_TIME_MS = 700;
+const REVEAL_ATTEMPTS = 3;
 
 function solveQueensSequentialInWorker(
   n: number,
@@ -148,14 +151,29 @@ export function submitSolution(playerName: string, queenPositions: number[]) {
   };
 }
 
-export async function revealSolution(excludeHash?: string): Promise<{ solution: number[]; hash: string }> {
-  const { sampleSolutions } = await solveQueensThreaded(N, 20, 300);
-  const candidates = excludeHash
-    ? sampleSolutions.filter(s => hashSolution(s) !== excludeHash)
-    : sampleSolutions;
-  const pool = candidates.length > 0 ? candidates : sampleSolutions;
-  const solution = pool[Math.floor(Math.random() * pool.length)];
-  return { solution, hash: hashSolution(solution) };
+export async function revealSolution(excludeHashes: string[] = []): Promise<{ solution: number[]; hash: string }> {
+  const excluded = new Set(excludeHashes.filter(Boolean));
+
+  for (let attempt = 0; attempt < REVEAL_ATTEMPTS; attempt++) {
+    const { sampleSolutions } = await solveQueensThreaded(N, REVEAL_SAMPLE_SIZE, REVEAL_MAX_TIME_MS, true);
+    const fresh: Array<{ solution: number[]; hash: string }> = [];
+    const seenInBatch = new Set<string>();
+
+    for (const solution of sampleSolutions) {
+      const hash = hashSolution(solution);
+      if (seenInBatch.has(hash) || excluded.has(hash)) {
+        continue;
+      }
+      seenInBatch.add(hash);
+      fresh.push({ solution, hash });
+    }
+
+    if (fresh.length > 0) {
+      return fresh[Math.floor(Math.random() * fresh.length)];
+    }
+  }
+
+  throw new Error('No new solution available to reveal right now.');
 }
 
 export function getStats() {
